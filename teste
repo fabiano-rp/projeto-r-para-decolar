@@ -1,1 +1,165 @@
+git init . # esse comando faz com que sua pasta vire um repositorio git
+git remote add origin 'https://github.com/....' # cole o endereco que foi copiado anteriormente
+git pull origin master # esse comando baixa os arquivos que estao no repositorio online
 
+
+library(shiny)
+
+fat_percent <- function(num_preg,
+                        sexo,
+                        idade,
+                        peso = 0,
+                        triceps = 0,
+                        peito = 0,
+                        sub_axilar = 0,
+                        subescapular = 0,
+                        abdominal = 0,
+                        supra_iliaca = 0,
+                        coxa = 0){
+  
+  # Verificar se as informações fornecidas de números de pregas cutâneas são igual a 3 ou 7
+  if(num_preg != 3 & num_preg != 7){
+    stop('O número de pregas cutâneas de ser 3 ou 7')
+  }
+  
+  # Verificar se o sexo informado é uma informação character igual a 'masculino' ou 'feminino'
+  if(sexo != 'masculino' & sexo != 'feminino'){
+    stop('O sexo de ser `masculino` ou `feminino`')
+  }
+  
+  # Calcular a soma das 7 ou 3 pregas cutâneas fornecidas
+  sum_seven <- triceps + peito + sub_axilar + subescapular + 
+    abdominal + supra_iliaca + coxa
+  
+  # Soma das 3 pregas cutâneas para o sexo masculino
+  sum_three_male <- peito +  abdominal + coxa
+  
+  # Soma das 3 pregas cutâneas para o sexo feminino
+  sum_three_female <- triceps + supra_iliaca + coxa
+  
+  # Calcular a densidade corporal para o sexo masculino, baseando-se em 7 pregas cutâneas
+  if(sexo == 'masculino' & num_preg == 7){
+    body_density <- 1.112-0.00043499*sum_seven+0.00000055 *(sum_seven^2)-0.00028826*idade
+  }
+  
+  # Calcular a densidade corporal para o sexo feminino, baseando-se em 7 pregas cutâneas
+  if(sexo == 'feminino' & num_preg == 7){
+    body_density <- 1.097-0.00046971*sum_seven+0.00000056 *(sum_seven^2)-0.00012828*idade
+  }
+  
+  # Calcular a densidade corporal para o sexo masculino, baseando-se em 3 pregas cutâneas
+  if(sexo == 'masculino' & num_preg == 3){
+    body_density <- 1.10938-0.0008267*sum_three_male+0.0000016 *(sum_three_male^2)-0.0002574*idade
+  }
+  
+  # Calcular a densidade corporal para o sexo feminino, baseando-se em 3 pregas cutâneas
+  if(sexo == 'feminino' & num_preg == 3){
+    body_density <- 1.0994921-0.0009929*sum_three_female+0.0000023 *(sum_three_female^2)-0.0001392*idade
+  }
+  
+  # Calcular o Percentual de Gordura
+  percent_fat <- (4.95/body_density-4.5)*100
+  # Calcular a Massa Gorda
+  fat_weight <- peso*percent_fat/100
+  # Calcular a Massa Magra
+  lean_weight <- peso-fat_weight
+  
+  # Calcular a Média da População para o sexo masculino
+  if(sexo == 'masculino'){
+    population_average <- 13.815+0.13*idade
+  }
+  
+  # Calcular a Média da População para o sexo feminino
+  if(sexo == 'feminino'){
+    population_average <- 21.55+0.1*idade
+  }
+  
+  
+  # Desvio padrão
+  
+  if(sexo == 'masculino'){
+    stand_dev <- 6
+  }
+  
+  if(sexo == 'feminino' & percent_fat <= population_average){
+    stand_dev <- 8 
+  }else{
+    stand_dev <- 7
+  }
+  
+  # Z score
+  
+  zscore <- (population_average - percent_fat)/stand_dev
+  perc_regress <- 0.49402+0.44379*abs(zscore)-0.082675*abs(zscore)^2
+  
+  if(zscore > 0){
+    score <- round(perc_regress * 100)
+  }
+  
+  if(zscore <= 0){
+    score <- round((1-perc_regress) * 100)  
+  }
+  
+  class <- dplyr::case_when(zscore >= 1 ~ 'Excelente',
+                            zscore < 1 & zscore >= 0.5 ~ 'Bom',
+                            zscore < 0.5 & zscore >= -0.5 ~ 'Médio',
+                            zscore < -0.5 & zscore >= -1 ~ 'Considerável',
+                            zscore < -1 ~ 'pobre')
+  
+  # Valores a serem retornados pela função
+  tabela <- tribble(~'Variável', ~Valor,
+                    'Densidade Corporal', body_density,
+                    'Massa Magra (kg)', lean_weight,
+                    'Massa Gorda (kg)', fat_weight,
+                    'Percentual de Gordura (%)', percent_fat,
+                    'Media da Poplação (%)', population_average)
+  return(tabela)
+}
+
+
+
+ui <- fluidRow(
+  'Insira os seus dados',
+         numericInput(inputId = 'num_preg', label = 'Número de pregas cutâneas', value = 7),
+         selectInput(inputId = "sexo",
+                     label = "Sexo",
+                     choices = c('feminino','masculino')
+         ),
+         numericInput(inputId = 'idade', label = 'Idade', min = 0, value = 0),
+         numericInput(inputId = 'peso', label = 'Peso (kg)', min = 0, value = 0),
+         numericInput(inputId = 'triceps', label = 'Triceps', min = 0, value = 0),
+         numericInput(inputId = 'peito', label = 'Peito', min = 0, value = 0),
+         numericInput(inputId = 'sub_axilar', label = 'Sub axilar', min = 0, value = 0),
+         numericInput(inputId = 'subescapular', label = 'Sub escapular', min = 0, value = 0),
+         numericInput(inputId = 'abdominal', label = 'Abdominal', min = 0, value = 0),
+         numericInput(inputId = 'supra_iliaca', label = 'Supra iliaca', min = 0, value = 0),
+         numericInput(inputId = 'coxa', label = 'Coxa', min = 0, value = 0),
+         tableOutput("resultado")
+
+  
+)
+
+server <- function(input, output, session) {
+  
+  output$resultado <- renderTable({fat_percent(input$num_preg,
+                                            input$sexo,
+                                            input$idade,
+                                            input$peso,
+                                            input$triceps,
+                                            input$peito,
+                                            input$sub_axilar,
+                                            input$subescapular,
+                                            input$abdominal,
+                                            input$supra_iliaca,
+                                            input$coxa)
+  })
+  
+  
+}
+
+shinyApp(ui, server)
+
+
+git add . # comando para dizer o git que arquivos serao adicionados
+git commit -am 'update' # comando que valida as modificacoes e prepara os arquivos para o 'upload'
+git push origin master # comando para fazer o 'upload' dos arquivos para o github
