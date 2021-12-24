@@ -102,7 +102,7 @@ fat_percent <- function(num_preg,
                             zscore < -1 ~ 'pobre')
   
   # Valores a serem retornados pela função
-  tabela <- tribble(~'Variável', ~Valor,
+  tabela <- tidyr::tribble(~'Variável', ~Valor,
                     'Densidade Corporal', body_density,
                     'Massa Magra (kg)', lean_weight,
                     'Massa Gorda (kg)', fat_weight,
